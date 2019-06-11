@@ -4,6 +4,71 @@ import os.path
 from glob import glob
 from xlrd import open_workbook
 
+def getExcelSheets():
+    excelSheets = []
+    for file in os.listdir():
+        if file[-5:] == '.xlsx':
+            if file[0] != '~':
+                excelSheets.append(os.path.join(os.getcwd(), file))
+    return excelSheets
+
+def getFileName(excelSheets, index):
+    split = excelSheets[index].split(os.path.sep)
+    return split[-1]
+
+def openWorkBook (excelSheets, index):
+    wb = openpyxl.load_workbook(excelSheets[index])
+    return wb
+
+def makeSheet(wb):
+    sheets = wb.sheetnames
+    sheet = wb[sheets[0]]
+    return sheet
+
+def makeResultsSheet(wb, fileName):
+    results = wb.create_sheet(index=1, title='results')
+    results['A1'] = 'Standard Name'
+    results['B1'] = fileName
+
+    currentRow = 2
+    for name in standards:
+        results.cell(row=currentRow, column=1).value = name
+        currentRow += 1
+
+    results.cell(row=currentRow + 1, column=1).value = 'Count'
+    return results
+
+def findStandards(sheet, results, currentRow, currentColumn):
+    count = 0
+    found = False
+
+    for name in standards:
+
+        found = False
+
+        for rowNum in range(5, sheet.max_row):
+            retentionTime = float(sheet.cell(row=rowNum, column=2).value)
+            libraryRetentionTime = standards[name]['rt']
+
+            if retentionTime < (libraryRetentionTime + 0.05) and retentionTime > (libraryRetentionTime - 0.05):
+                massToCharge = float(sheet.cell(row=rowNum, column=3).value)
+                libraryMassToCharge = standards[name]['mz']
+
+                if massToCharge < (libraryMassToCharge + 0.005) and massToCharge > (libraryMassToCharge - 0.005):
+                    found = True
+                    count += 1
+
+        if found:
+            results.cell(row=currentRow, column=currentColumn).value = 'Y'
+        else:
+            results.cell(row=currentRow, column=currentColumn).value = 'N'
+        currentRow += 1
+
+    results.cell(row=currentRow + 1, column=currentColumn).value = count
+
+def saveAndClose(wb, results):
+    wb.save('results.xlsx')
+    
 standards = {'CUDA': {'mz': 341.2799, 'rt': 1.16},
              'D3-Creatinine': {'mz': 117.0850, 'rt': 4.95},
              'D9-Choline': {'mz': 113.1635, 'rt': 5.18},
@@ -24,59 +89,12 @@ standards = {'CUDA': {'mz': 341.2799, 'rt': 1.16},
              '15N2-L-Arginine': {'mz': 177.1130, 'rt': 9.53}
              }
 
-excelSheets = []
+excelSheets = getExcelSheets()
 
-for file in os.listdir():
-    if file[-5:] == '.xlsx':
-        if file[0] != '~':
-            excelSheets.append(os.path.join(os.getcwd(), file))
-
-num = 0
-currentRow = 2
-
-wb = openpyxl.load_workbook(excelSheets[num])
-sheets = wb.sheetnames
-sheet = wb[sheets[0]]
-
-results = wb.create_sheet(index=1, title='results')
-results['A1'] = 'Standard Name'
-results['B1'] = 'Found'
-
-for name in standards:
-    results.cell(row=currentRow, column=1).value = name
-    currentRow += 1
-
-results.cell(row=currentRow + 1, column=1).value = 'Count'
-
-currentRow = 2
-currentColumn = 2
-column = 2
-count = 0
-found = False
-
-for name in standards:
-
-    found = False
-
-    for rowNum in range(5, sheet.max_row):
-        retentionTime = float(sheet.cell(row=rowNum, column=2).value)
-        libraryRetentionTime = standards[name]['rt']
-
-        if retentionTime < (libraryRetentionTime + 0.05) and retentionTime > (libraryRetentionTime - 0.05):
-            massToCharge = float(sheet.cell(row=rowNum, column=3).value)
-            libraryMassToCharge = standards[name]['mz']
-
-            if massToCharge < (libraryMassToCharge + 0.005) and massToCharge > (libraryMassToCharge - 0.005):
-                found = True
-                count += 1
-
-    if found:
-        results.cell(row=currentRow, column=currentColumn).value = 'Y'
-    else:
-
-        results.cell(row=currentRow, column=currentColumn).value = 'N'
-    currentRow += 1
-
-results.cell(row=currentRow + 1, column=currentColumn).value = count
-
-wb.save('results.xlsx')
+for index in range(len(excelSheets)):
+    fileName = getFileName(excelSheets, index)
+    wb = openWorkBook(getExcelSheets(), index)
+    sheet = makeSheet(wb)
+    results = makeResultsSheet(wb, fileName)
+    findStandards(sheet, results, 2, 2)
+    wb.save('ISTD_Results_' + fileName)
