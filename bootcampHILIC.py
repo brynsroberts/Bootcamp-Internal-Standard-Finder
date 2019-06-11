@@ -2,12 +2,16 @@
 Name: Bryan Roberts
 Date: 6/10/2019
 Description: Program searches excel files in current directory of script for
-Fiehn Lab HILIC internal standards.  Writes results to new sheet of each
-file called "results.xlsx" that writes 'Y' if internal standards is found
-and 'N' if internal standard is not found.  For bootcamp paper.
-To Do:
--copy all results sheet files and merge into one file
+Fiehn Lab HILIC internal standards.  Writes results to new sheet called "results.xlsx" 
+that writes 'Y' if internal standards is foundand 'N' if internal standard is not 
+found.  For untargeted metabolomics bootcamp paper focusing on MS-Dial output.
+Sources:
+https://automatetheboringstuff.com/
+http://prime.psc.riken.jp/Metabolomics_Software/MS-DIAL/
+Excel File Format:
+Standard exported output from MS-Dial
 """
+
 import openpyxl
 import os.path
 from glob import glob
@@ -43,9 +47,9 @@ def makeResultsWorkBook():
     wb = openpyxl.Workbook()
     sheet = wb.active
     sheet['A1'] = 'Standard Name'
-    #sheet['B1'] = fileName
-
     currentRow = 2
+
+    #write internal standard names to result sheet
     for name in standards:
         sheet.cell(row=currentRow, column=1).value = name
         currentRow += 1
@@ -56,15 +60,16 @@ def makeResultsWorkBook():
 
 #finds standards and writes results to return sheet
 def findStandards(sheet, results, currentRow, currentColumn):
-    count = 0
-    found = False
+    count = 0       #count number of internal standard found in each file
+    found = False   #bool if individual standard is found, changes to true
 
     #top results row with filename
     results.cell(row = 1, column = currentColumn).value = fileName
 
+    #loop through all internal standards in standard dictionary
     for name in standards:
 
-        found = False
+        found = False   #reset found for each standard
 
         #check to find mz and rt match
         for rowNum in range(5, sheet.max_row):
@@ -81,6 +86,7 @@ def findStandards(sheet, results, currentRow, currentColumn):
                     found = True
                     count += 1
 
+        #write result to 'results.xlsx'
         if found:
             results.cell(row=currentRow, column=currentColumn).value = 'Y'
         else:
@@ -112,20 +118,30 @@ standards = {'CUDA': {'mz': 341.2799, 'rt': 1.16},
              '15N2-L-Arginine': {'mz': 177.1130, 'rt': 9.53}
              }
 
+"""
+Execute main program
+"""
+
 if __name__ == "__main__":
 
+    #initialize excelSheets list and open results file
     excelSheets = getExcelSheets()
     resultsWorkBook = makeResultsWorkBook()
     results = makeSheet(resultsWorkBook)
+    
+    #starting results row and column
     currentColumn = 2
     currentRow = 2
 
+    #for each excel file found perform loop
     for index in range(len(excelSheets)):
         fileName = getFileName(excelSheets, index)
         wb = openWorkBook(getExcelSheets(), index)
         sheet = makeSheet(wb)
         findStandards(sheet, results, currentRow, currentColumn)
         resultsWorkBook.save('results.xlsx')
+        
+        #update results row and column
         currentColumn += 1
         currentRow = 2
 
