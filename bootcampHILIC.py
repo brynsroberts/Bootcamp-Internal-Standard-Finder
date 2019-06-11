@@ -14,8 +14,6 @@ Standard exported output from MS-Dial
 
 import openpyxl
 import os.path
-from glob import glob
-from xlrd import open_workbook
 
 #return list of excel documents in folder
 def getExcelSheets():
