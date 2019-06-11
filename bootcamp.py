@@ -1,9 +1,19 @@
-
+"""
+Name: Bryan Roberts
+Date: 6/10/2019
+Description: Program searches excel files in current directory of script for
+Fiehn Lab HILIC internal standards.  Writes results to new sheet of each
+file called "results.xlsx" that writes 'Y' if internal standards is found
+and 'N' if internal standard is not found.  For bootcamp paper.
+To Do:
+-copy all results sheet files and merge into one file
+"""
 import openpyxl
 import os.path
 from glob import glob
 from xlrd import open_workbook
 
+#return list of excel documents in folder
 def getExcelSheets():
     excelSheets = []
     for file in os.listdir():
@@ -12,19 +22,23 @@ def getExcelSheets():
                 excelSheets.append(os.path.join(os.getcwd(), file))
     return excelSheets
 
+#return current filename
 def getFileName(excelSheets, index):
     split = excelSheets[index].split(os.path.sep)
     return split[-1]
 
+#opens and returns workbook of current excel sheet
 def openWorkBook (excelSheets, index):
     wb = openpyxl.load_workbook(excelSheets[index])
     return wb
 
+#returns sheet of current workbook
 def makeSheet(wb):
     sheets = wb.sheetnames
     sheet = wb[sheets[0]]
     return sheet
 
+#makes new sheet called results and returns sheet
 def makeResultsSheet(wb, fileName):
     results = wb.create_sheet(index=1, title='results')
     results['A1'] = 'Standard Name'
@@ -38,6 +52,7 @@ def makeResultsSheet(wb, fileName):
     results.cell(row=currentRow + 1, column=1).value = 'Count'
     return results
 
+#finds standards and writes results to return sheet
 def findStandards(sheet, results, currentRow, currentColumn):
     count = 0
     found = False
@@ -46,14 +61,17 @@ def findStandards(sheet, results, currentRow, currentColumn):
 
         found = False
 
+        #check to find mz and rt match
         for rowNum in range(5, sheet.max_row):
             retentionTime = float(sheet.cell(row=rowNum, column=2).value)
             libraryRetentionTime = standards[name]['rt']
 
+            #retention time match
             if retentionTime < (libraryRetentionTime + 0.05) and retentionTime > (libraryRetentionTime - 0.05):
                 massToCharge = float(sheet.cell(row=rowNum, column=3).value)
                 libraryMassToCharge = standards[name]['mz']
 
+                #mz match
                 if massToCharge < (libraryMassToCharge + 0.005) and massToCharge > (libraryMassToCharge - 0.005):
                     found = True
                     count += 1
@@ -64,11 +82,11 @@ def findStandards(sheet, results, currentRow, currentColumn):
             results.cell(row=currentRow, column=currentColumn).value = 'N'
         currentRow += 1
 
+    #print count
     results.cell(row=currentRow + 1, column=currentColumn).value = count
 
-def saveAndClose(wb, results):
-    wb.save('results.xlsx')
-    
+
+#Fiehn Lab HILIC Internal Standards    
 standards = {'CUDA': {'mz': 341.2799, 'rt': 1.16},
              'D3-Creatinine': {'mz': 117.0850, 'rt': 4.95},
              'D9-Choline': {'mz': 113.1635, 'rt': 5.18},
@@ -89,12 +107,20 @@ standards = {'CUDA': {'mz': 341.2799, 'rt': 1.16},
              '15N2-L-Arginine': {'mz': 177.1130, 'rt': 9.53}
              }
 
-excelSheets = getExcelSheets()
+if __name__ == "__main__":
 
-for index in range(len(excelSheets)):
-    fileName = getFileName(excelSheets, index)
-    wb = openWorkBook(getExcelSheets(), index)
-    sheet = makeSheet(wb)
-    results = makeResultsSheet(wb, fileName)
-    findStandards(sheet, results, 2, 2)
-    wb.save('ISTD_Results_' + fileName)
+    excelSheets = getExcelSheets()
+    resultSheets = []
+
+    for index in range(len(excelSheets)):
+        fileName = getFileName(excelSheets, index)
+        wb = openWorkBook(getExcelSheets(), index)
+        sheet = makeSheet(wb)
+        results = makeResultsSheet(wb, fileName)
+        findStandards(sheet, results, 2, 2)
+        wb.save('ISTD_Results_' + fileName)
+        resultSheets.append('ISTD_Results_' + fileName)
+
+    #copy all results for resultSheets into one file
+
+
