@@ -39,23 +39,28 @@ def makeSheet(wb):
     return sheet
 
 #makes new sheet called results and returns sheet
-def makeResultsSheet(wb, fileName):
-    results = wb.create_sheet(index=1, title='results')
-    results['A1'] = 'Standard Name'
-    results['B1'] = fileName
+def makeResultsWorkBook():
+    wb = openpyxl.Workbook()
+    sheet = wb.active
+    sheet['A1'] = 'Standard Name'
+    #sheet['B1'] = fileName
 
     currentRow = 2
     for name in standards:
-        results.cell(row=currentRow, column=1).value = name
+        sheet.cell(row=currentRow, column=1).value = name
         currentRow += 1
 
-    results.cell(row=currentRow + 1, column=1).value = 'Count'
-    return results
+    sheet.cell(row=currentRow + 1, column=1).value = 'Count'
+    wb.save('results.xlsx')
+    return wb
 
 #finds standards and writes results to return sheet
 def findStandards(sheet, results, currentRow, currentColumn):
     count = 0
     found = False
+
+    #top results row with filename
+    results.cell(row = 1, column = currentColumn).value = fileName
 
     for name in standards:
 
@@ -110,17 +115,21 @@ standards = {'CUDA': {'mz': 341.2799, 'rt': 1.16},
 if __name__ == "__main__":
 
     excelSheets = getExcelSheets()
-    resultSheets = []
+    resultsWorkBook = makeResultsWorkBook()
+    results = makeSheet(resultsWorkBook)
+    currentColumn = 2
+    currentRow = 2
 
     for index in range(len(excelSheets)):
         fileName = getFileName(excelSheets, index)
         wb = openWorkBook(getExcelSheets(), index)
         sheet = makeSheet(wb)
-        results = makeResultsSheet(wb, fileName)
-        findStandards(sheet, results, 2, 2)
-        wb.save('ISTD_Results_' + fileName)
-        resultSheets.append('ISTD_Results_' + fileName)
+        findStandards(sheet, results, currentRow, currentColumn)
+        resultsWorkBook.save('results.xlsx')
+        currentColumn += 1
+        currentRow = 2
 
-    #copy all results for resultSheets into one file
+
+
 
 
